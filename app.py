@@ -1,4 +1,3 @@
-
 import streamlit as st
 import requests
 import pandas as pd
@@ -12,124 +11,176 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.units import inch
 
-# ─── Page Config ─────────────────────────────────────────────────────────────
+# âââ Page Config âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 st.set_page_config(
     page_title="Reddit Social Listener | LeadPulls",
-    page_icon="🔍",
+    page_icon="ð",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ─── Brand Styles ─────────────────────────────────────────────────────────────
+# âââ Brand Styles âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 st.markdown("""
 <style>
     :root { --navy:#00233F; --orange:#FF5F00; }
-    .stApp { background:#f4f6f8; }
-
-    /* Hide default header */
+    .stApp { background:#f0f2f5; }
     header[data-testid="stHeader"] { display:none; }
 
-    /* Sidebar */
-    section[data-testid="stSidebar"] { background:#00233F !important; }
+    /* ââ Sidebar ââ */
+    section[data-testid="stSidebar"] {
+        background:#00233F !important;
+        border-right: 3px solid #FF5F00;
+    }
     section[data-testid="stSidebar"] * { color:#fff !important; }
-    section[data-testid="stSidebar"] .stSelectbox label,
-    section[data-testid="stSidebar"] .stTextInput label,
-    section[data-testid="stSidebar"] .stRadio label,
-    section[data-testid="stSidebar"] .stCheckbox label {
-        color:#fff !important; font-weight:500;
-    }
+    section[data-testid="stSidebar"] .stSlider label { color:#aec6d8 !important; font-size:12px; }
 
-    /* Top bar */
+    /* ââ Top bar ââ */
     .topbar {
-        background:#00233F; color:#fff;
+        background: linear-gradient(135deg, #00233F 0%, #003a65 100%);
+        padding:18px 28px; border-radius:12px; margin-bottom:20px;
         display:flex; align-items:center; justify-content:space-between;
-        padding:14px 24px; border-radius:10px; margin-bottom:18px;
+        box-shadow: 0 4px 15px rgba(0,35,63,0.3);
     }
-    .topbar-logo { font-size:20px; font-weight:800; letter-spacing:-0.5px; }
+    .topbar-left { display:flex; align-items:center; gap:14px; }
+    .topbar-logo { font-size:22px; font-weight:900; letter-spacing:-0.5px; color:#fff; }
     .topbar-logo span { color:#FF5F00; }
+    .topbar-tag {
+        background:rgba(255,95,0,0.2); border:1px solid rgba(255,95,0,0.4);
+        color:#FF5F00; font-size:11px; font-weight:700; padding:3px 10px;
+        border-radius:20px; text-transform:uppercase; letter-spacing:1px;
+    }
     .topbar-meta { font-size:12px; color:#aec6d8; }
     .topbar-meta b { color:#fff; }
 
-    /* Stat boxes */
-    .stats-row { display:flex; gap:12px; margin-bottom:16px; }
-    .stat-box {
-        background:#fff; border-radius:10px; padding:14px 20px;
-        flex:1; border-top:3px solid #00233F;
-        box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    /* ââ Config card ââ */
+    .config-card {
+        background:#fff; border-radius:14px; padding:28px 32px;
+        box-shadow:0 2px 12px rgba(0,0,0,0.06); margin-bottom:20px;
+        border-top: 4px solid #FF5F00;
     }
-    .stat-number { font-size:28px; font-weight:800; color:#FF5F00; line-height:1; }
-    .stat-label  { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; }
-
-    /* Filter pills */
-    .pill-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px; }
-    .pill {
-        background:#fff; border:1px solid #ddd; border-radius:20px;
-        padding:5px 14px; font-size:12px; font-weight:600; cursor:pointer;
-        color:#444; display:inline-block;
+    .step-label {
+        font-size:11px; font-weight:800; color:#FF5F00;
+        text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px;
     }
-    .pill-active { background:#00233F; color:#fff; border-color:#00233F; }
-    .pill-hot    { background:#FF5F00; color:#fff; border-color:#FF5F00; }
-
-    /* Result card */
-    .rcard {
-        background:#fff; border-radius:10px;
-        border:1px solid #e8e8e8;
-        padding:18px 20px; margin-bottom:12px;
-        box-shadow:0 1px 3px rgba(0,0,0,0.04);
-        position:relative;
+    .step-title {
+        font-size:18px; font-weight:800; color:#00233F; margin-bottom:16px;
     }
-    .rcard-top { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
-    .badge-sub  { background:#00233F; color:#fff; border-radius:20px; padding:3px 11px; font-size:11px; font-weight:700; }
-    .badge-sig  { border-radius:20px; padding:3px 11px; font-size:11px; font-weight:600; }
-    .badge-intent     { background:#e8f5e9; color:#2e7d32; }
-    .badge-pain       { background:#fdecea; color:#c62828; }
-    .badge-competitor { background:#fff3e0; color:#e65100; }
-    .badge-trend      { background:#e8eaf6; color:#283593; }
-    .badge-boolean    { background:#f3e5f5; color:#6a1b9a; }
-    .badge-hot { background:#FF5F00; color:#fff; border-radius:20px; padding:3px 11px; font-size:11px; font-weight:700; margin-left:auto; }
 
-    .rcard-title { font-size:16px; font-weight:700; color:#00233F; margin-bottom:6px; line-height:1.3; }
-    .rcard-title a { color:#00233F; text-decoration:none; }
-    .rcard-title a:hover { text-decoration:underline; color:#FF5F00; }
-    .rcard-snippet { font-size:13px; color:#555; line-height:1.5; margin-bottom:10px; }
-    .rcard-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-    .rcard-tag { background:#f0f4f8; color:#444; border-radius:20px; padding:2px 10px; font-size:11px; }
-    .rcard-footer { display:flex; align-items:center; gap:12px; font-size:12px; color:#888; }
-    .rcard-footer b { color:#333; }
+    /* ââ Industry selector ââ */
+    .stSelectbox > div > div {
+        border: 2px solid #e0e0e0 !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        color: #00233F !important;
+    }
+    .stSelectbox > div > div:focus-within {
+        border-color: #FF5F00 !important;
+    }
 
-    /* Buttons */
+    /* ââ Signal cards ââ */
+    .signal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:4px 0 20px; }
+    .signal-card {
+        background:#f8f9fa; border:2px solid #e8e8e8;
+        border-radius:12px; padding:14px 16px;
+        transition: all 0.2s;
+    }
+    .signal-card:hover { border-color:#FF5F00; background:#fff8f5; }
+    .signal-card-header { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+    .signal-icon { font-size:20px; }
+    .signal-name { font-size:14px; font-weight:700; color:#00233F; }
+    .signal-desc { font-size:12px; color:#777; line-height:1.4; padding-left:30px; }
+
+    /* ââ Keyword input ââ */
+    .stTextArea textarea {
+        border: 2px solid #e0e0e0 !important;
+        border-radius: 10px !important;
+        font-size: 14px !important;
+    }
+    .stTextArea textarea:focus {
+        border-color: #FF5F00 !important;
+        box-shadow: 0 0 0 3px rgba(255,95,0,0.1) !important;
+    }
+
+    /* ââ Run button ââ */
     .stButton > button {
-        background:#FF5F00 !important; color:#fff !important;
-        border:none !important; border-radius:8px !important;
-        font-weight:700 !important; font-size:14px !important;
+        background: linear-gradient(135deg, #FF5F00, #e05400) !important;
+        color: #fff !important; border: none !important;
+        border-radius: 10px !important; font-weight: 800 !important;
+        font-size: 16px !important; padding: 14px 32px !important;
+        width: 100% !important; letter-spacing: 0.3px !important;
+        box-shadow: 0 4px 12px rgba(255,95,0,0.35) !important;
+        transition: all 0.2s !important;
     }
-    .stButton > button:hover { background:#e05400 !important; }
+    .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 18px rgba(255,95,0,0.45) !important;
+    }
 
-    /* Download buttons */
+    /* ââ Download buttons ââ */
     .stDownloadButton > button {
         background:#00233F !important; color:#fff !important;
         border:none !important; border-radius:8px !important;
         font-weight:600 !important; font-size:13px !important;
     }
 
-    /* Email gate */
+    /* ââ Email gate ââ */
     .email-gate {
-        background:#00233F; border-radius:14px; padding:48px 40px;
-        text-align:center; max-width:500px; margin:80px auto;
+        background: linear-gradient(135deg, #00233F, #003a65);
+        border-radius:16px; padding:52px 40px; text-align:center;
+        max-width:480px; margin:80px auto;
+        box-shadow: 0 20px 60px rgba(0,35,63,0.3);
+        border-top: 4px solid #FF5F00;
     }
-    .email-gate h2 { color:#fff; font-size:26px; font-weight:800; margin-bottom:8px; }
-    .email-gate p  { color:#aec6d8; font-size:14px; margin-bottom:24px; }
+    .email-gate h2 { color:#fff; font-size:26px; font-weight:900; margin-bottom:8px; }
+    .email-gate p  { color:#aec6d8; font-size:14px; margin-bottom:28px; line-height:1.6; }
+    .gate-perks { text-align:left; margin-bottom:24px; }
+    .gate-perk  { color:#fff; font-size:13px; margin-bottom:8px; }
+    .gate-perk span { color:#FF5F00; font-weight:700; margin-right:8px; }
 
-    div[data-testid="stExpander"] { border:1px solid #e0e0e0; border-radius:8px; }
-    .section-hdr {
-        font-size:12px; font-weight:700; color:#FF5F00;
-        text-transform:uppercase; letter-spacing:1px;
-        margin:14px 0 6px; border-bottom:1px solid #e8e8e8; padding-bottom:5px;
+    /* ââ Stat boxes ââ */
+    .stats-row { display:flex; gap:12px; margin-bottom:20px; }
+    .stat-box {
+        background:#fff; border-radius:12px; padding:16px 20px;
+        flex:1; border-bottom:3px solid #FF5F00;
+        box-shadow:0 2px 8px rgba(0,0,0,0.06);
+        text-align:center;
     }
+    .stat-number { font-size:30px; font-weight:900; color:#00233F; line-height:1; }
+    .stat-label  { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; }
+
+    /* ââ Result cards ââ */
+    .rcard {
+        background:#fff; border-radius:12px;
+        border:1px solid #eee; border-left: 4px solid #FF5F00;
+        padding:20px 22px; margin-bottom:14px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.04);
+    }
+    .rcard.handled { border-left-color:#ccc; opacity:0.55; }
+    .rcard-top { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+    .badge-sub  { background:#00233F; color:#fff; border-radius:20px; padding:3px 12px; font-size:11px; font-weight:700; }
+    .badge-sig  { border-radius:20px; padding:3px 12px; font-size:11px; font-weight:600; }
+    .badge-intent     { background:#e8f5e9; color:#2e7d32; }
+    .badge-pain       { background:#fdecea; color:#c62828; }
+    .badge-competitor { background:#fff3e0; color:#e65100; }
+    .badge-trend      { background:#e8eaf6; color:#283593; }
+    .badge-boolean    { background:#f3e5f5; color:#6a1b9a; }
+    .badge-hot { background:#FF5F00; color:#fff; border-radius:20px; padding:3px 12px; font-size:11px; font-weight:700; margin-left:auto; }
+    .rcard-title { font-size:16px; font-weight:700; color:#00233F; margin-bottom:6px; line-height:1.4; }
+    .rcard-title a { color:#00233F; text-decoration:none; }
+    .rcard-title a:hover { color:#FF5F00; text-decoration:underline; }
+    .rcard-snippet { font-size:13px; color:#555; line-height:1.6; margin-bottom:10px; }
+    .rcard-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .rcard-tag { background:#f0f4f8; color:#00233F; border-radius:20px; padding:2px 10px; font-size:11px; font-weight:600; }
+    .rcard-footer { font-size:12px; color:#999; }
+    .rcard-footer b { color:#555; }
+
+    div[data-testid="stExpander"] { border:1px solid #e8e8e8; border-radius:10px; }
+    .stCheckbox label { font-size:14px !important; font-weight:600 !important; color:#00233F !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Industry Templates ───────────────────────────────────────────────────────
+# âââ Industry Templates âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# âââ Industry Templates âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 TEMPLATES = {
     "MSPs / IT Firms": {
         "subreddits": ["msp","sysadmin","ITCareerQuestions","smallbusiness","cybersecurity","techsupport","businessowners"],
@@ -246,15 +297,15 @@ TEMPLATES = {
 }
 
 SIGNAL_BADGE = {
-    "🟢 Buying Intent":      "badge-intent",
-    "🔴 Pain / Frustration": "badge-pain",
-    "🟠 Competitor Mention": "badge-competitor",
-    "🔵 Trend / Research":   "badge-trend",
-    "🔍 Boolean Match":      "badge-boolean",
+    "ð¢ Buying Intent":      "badge-intent",
+    "ð´ Pain / Frustration": "badge-pain",
+    "ð  Competitor Mention": "badge-competitor",
+    "ðµ Trend / Research":   "badge-trend",
+    "ð Boolean Match":      "badge-boolean",
 }
 
 
-# ─── Helpers ─────────────────────────────────────────────────────────────────
+# âââ Helpers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 def time_ago(ts):
     diff = time.time() - ts
     if diff < 3600:   return f"{int(diff/60)}m ago"
@@ -287,10 +338,10 @@ def matches_signals(text, template, custom_brands, custom_services, active_signa
         return None, []
     triggered = []
     signal_map = {
-        "Buying Intent":       ("intent",      "🟢 Buying Intent"),
-        "Pain / Frustration":  ("pain",        "🔴 Pain / Frustration"),
-        "Competitor Mentions": ("competitors", "🟠 Competitor Mention"),
-        "Trend / Research":    ("trends",      "🔵 Trend / Research"),
+        "Buying Intent":       ("intent",      "ð¢ Buying Intent"),
+        "Pain / Frustration":  ("pain",        "ð´ Pain / Frustration"),
+        "Competitor Mentions": ("competitors", "ð  Competitor Mention"),
+        "Trend / Research":    ("trends",      "ðµ Trend / Research"),
     }
     for sig_name, (key, label) in signal_map.items():
         if sig_name not in active_signals: continue
@@ -299,14 +350,14 @@ def matches_signals(text, template, custom_brands, custom_services, active_signa
                 triggered.append((label, phrase)); break
     for term in custom_brands + custom_services:
         if term.strip() and term.strip().lower() in text_lower:
-            triggered.append(("🟠 Competitor Mention", term.strip()))
+            triggered.append(("ð  Competitor Mention", term.strip()))
     if not triggered: return None, []
     return triggered[0][0], list({t[1] for t in triggered})
 
 HEADERS = {"User-Agent": "Mozilla/5.0 LeadPullsScrubber/1.0 (by LeadPulls)"}
 
 def fetch_subreddit(sub, limit=100):
-    """Fetch posts from a subreddit using Reddit's public JSON API — no key needed."""
+    """Fetch posts from a subreddit using Reddit's public JSON API â no key needed."""
     posts = []
     url = f"https://www.reddit.com/r/{sub}/new.json?limit={min(limit,100)}"
     try:
@@ -363,7 +414,7 @@ def run_boolean_scrape(subreddits, boolean_query, limit=100):
             if matcher(combined):
                 ts = d.get("created_utc", 0)
                 results.append({
-                    "signal":    "🔍 Boolean Match",
+                    "signal":    "ð Boolean Match",
                     "subreddit": f"r/{sub}",
                     "title":     d.get("title",""),
                     "snippet":   d.get("selftext","")[:220].replace("\n"," "),
@@ -379,7 +430,7 @@ def run_boolean_scrape(subreddits, boolean_query, limit=100):
     return results
 
 
-# ─── PDF Generator ────────────────────────────────────────────────────────────
+# âââ PDF Generator ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 def generate_pdf(results, industry=""):
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter,
@@ -394,8 +445,8 @@ def generate_pdf(results, industry=""):
     title_style = ParagraphStyle("title", fontSize=18, fontName="Helvetica-Bold",
                                  textColor=navy, spaceAfter=4)
     sub_style   = ParagraphStyle("sub",   fontSize=10, textColor=colors.HexColor("#888888"), spaceAfter=16)
-    story.append(Paragraph("LeadPulls · Reddit Social Listener", title_style))
-    story.append(Paragraph(f"{industry}  ·  {len(results)} results  ·  Run {datetime.now().strftime('%b %d, %Y %I:%M %p')}", sub_style))
+    story.append(Paragraph("LeadPulls Â· Reddit Social Listener", title_style))
+    story.append(Paragraph(f"{industry}  Â·  {len(results)} results  Â·  Run {datetime.now().strftime('%b %d, %Y %I:%M %p')}", sub_style))
     story.append(HRFlowable(width="100%", thickness=2, color=orange, spaceAfter=14))
 
     card_title  = ParagraphStyle("ct", fontSize=12, fontName="Helvetica-Bold", textColor=navy, spaceAfter=3)
@@ -407,11 +458,11 @@ def generate_pdf(results, industry=""):
     for i, r in enumerate(results):
         story.append(Paragraph(r["title"], card_title))
         story.append(Paragraph(
-            f"{r['signal']}  ·  {r['subreddit']}  ·  u/{r['author']}  ·  {r['posted']}  ·  ▲{r['upvotes']}  ·  💬{r['comments']}{'  🔥 HOT' if r.get('hot') else ''}",
+            f"{r['signal']}  Â·  {r['subreddit']}  Â·  u/{r['author']}  Â·  {r['posted']}  Â·  â²{r['upvotes']}  Â·  ð¬{r['comments']}{'  ð¥ HOT' if r.get('hot') else ''}",
             card_meta
         ))
         if r["snippet"]:
-            story.append(Paragraph(r["snippet"] + "…", card_snip))
+            story.append(Paragraph(r["snippet"] + "â¦", card_snip))
         story.append(Paragraph("Matched: " + ", ".join(r["matched"]), card_match))
         story.append(Paragraph(r["url"], card_url))
         story.append(Spacer(1, 8))
@@ -423,27 +474,27 @@ def generate_pdf(results, industry=""):
     return buf
 
 
-# ─── Session State ─────────────────────────────────────────────────────────────
+# âââ Session State âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 for k, v in [("email_ok", False), ("results", []), ("ran", False),
              ("handled", set()), ("last_run", None), ("industry_ran", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
 
-# ─── Email Gate ────────────────────────────────────────────────────────────────
+# âââ Email Gate ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 if not st.session_state.email_ok:
     st.markdown("""
     <div class="email-gate">
-        <div style="font-size:40px;margin-bottom:12px;">🔍</div>
+        <div style="font-size:40px;margin-bottom:12px;">ð</div>
         <h2>Reddit Social Listener</h2>
-        <p>Free access — enter your details below and start listening to your market in minutes.</p>
+        <p>Free access â enter your details below and start listening to your market in minutes.</p>
     </div>
     """, unsafe_allow_html=True)
     ca, cb, cc = st.columns([1,2,1])
     with cb:
         name  = st.text_input("", placeholder="Your first name",    label_visibility="collapsed")
         email = st.text_input("", placeholder="you@company.com",    label_visibility="collapsed")
-        if st.button("Get Free Access →"):
+        if st.button("Get Free Access â"):
             if "@" in email and len(name.strip()) > 0:
                 st.session_state.email_ok    = True
                 st.session_state.user_email  = email
@@ -454,105 +505,137 @@ if not st.session_state.email_ok:
     st.stop()
 
 
-# ─── Sidebar ──────────────────────────────────────────────────────────────────
+# âââ Sidebar ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 with st.sidebar:
-    st.markdown("### 🔎 Search Mode")
-    mode = st.radio("", ["Simple Mode", "Advanced (Boolean)"], label_visibility="collapsed")
+    st.markdown("""
+    <div style="text-align:center;padding:20px 0 10px;">
+        <div style="font-size:22px;font-weight:900;color:#fff;">Lead<span style="color:#FF5F00;">Pulls</span></div>
+        <div style="font-size:11px;color:#aec6d8;margin-top:4px;">Reddit Social Listener</div>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("### 📡 Posts per Subreddit")
-    post_limit = st.slider("", 25, 200, 100, 25, label_visibility="collapsed")
+    st.markdown('<div style="font-size:12px;color:#aec6d8;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Scan Depth</div>', unsafe_allow_html=True)
+    post_limit = st.slider("Posts per subreddit", 25, 200, 100, 25)
     st.markdown("---")
-    st.markdown('<div style="font-size:11px;color:#aec6d8;text-align:center;">Built by <b style="color:#FF5F00;">LeadPulls</b> · leadpulls.com</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:11px;color:#aec6d8;text-align:center;line-height:1.6;">Built by <b style="color:#FF5F00;">LeadPulls</b><br>leadpulls.com</div>', unsafe_allow_html=True)
 
 
-# ─── Top Bar ──────────────────────────────────────────────────────────────────
-last_run_str = st.session_state.last_run.strftime("Last run: %A, %B %d at %I:%M %p") if st.session_state.last_run else "Not run yet"
+# âââ Top Bar ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+last_run_str = st.session_state.last_run.strftime("%A, %b %d at %I:%M %p") if st.session_state.last_run else "Not run yet"
 st.markdown(f"""
 <div class="topbar">
-    <div class="topbar-logo">Lead<span>Pulls</span> · Reddit Monitor</div>
-    <div class="topbar-meta"><b>{last_run_str}</b></div>
+    <div class="topbar-left">
+        <div class="topbar-logo">Lead<span>Pulls</span></div>
+        <div class="topbar-tag">Reddit Social Listener</div>
+    </div>
+    <div class="topbar-meta">Last run: <b>{last_run_str}</b></div>
 </div>
 """, unsafe_allow_html=True)
 
 
-# ─── Config Panel ─────────────────────────────────────────────────────────────
-if mode == "Simple Mode":
-    c1, c2 = st.columns([1,1])
-    with c1:
-        st.markdown('<div class="section-hdr">Industry</div>', unsafe_allow_html=True)
-        industry = st.selectbox("", list(TEMPLATES.keys()), label_visibility="collapsed")
-        template = TEMPLATES[industry]
-        st.markdown('<div class="section-hdr">Signal Types</div>', unsafe_allow_html=True)
-        active_signals = []
-        ca, cb = st.columns(2)
-        with ca:
-            if st.checkbox("🟢 Buying Intent",      value=True): active_signals.append("Buying Intent")
-            if st.checkbox("🔴 Pain / Frustration", value=True): active_signals.append("Pain / Frustration")
-        with cb:
-            if st.checkbox("🟠 Competitor Mentions", value=True): active_signals.append("Competitor Mentions")
-            if st.checkbox("🔵 Trend / Research",    value=True): active_signals.append("Trend / Research")
-    with c2:
-        st.markdown('<div class="section-hdr">Your Brands & Competitors</div>', unsafe_allow_html=True)
-        brand_input   = st.text_area("", height=75, placeholder="SentinelOne, Datto, CrowdStrike\n(comma or line separated)", label_visibility="collapsed")
-        st.markdown('<div class="section-hdr">Your Services / Products</div>', unsafe_allow_html=True)
-        service_input = st.text_area("", height=75, placeholder="managed IT, endpoint security, SEO\n(comma or line separated)", label_visibility="collapsed")
+# âââ Config Panel âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+st.markdown('<div class="config-card">', unsafe_allow_html=True)
 
-    custom_brands   = [b.strip() for b in re.split(r"[,\n]", brand_input)   if b.strip()]
-    custom_services = [s.strip() for s in re.split(r"[,\n]", service_input) if s.strip()]
+# Step 1 â Industry
+st.markdown('<div class="step-label">Step 1</div>', unsafe_allow_html=True)
+st.markdown('<div class="step-title">What industry are you listening to?</div>', unsafe_allow_html=True)
+industry = st.selectbox("", list(TEMPLATES.keys()), label_visibility="collapsed")
+template = TEMPLATES[industry]
 
-    with st.expander("📋 Subreddits this scan covers"):
-        st.markdown("  ·  ".join([f"r/{s}" for s in template["subreddits"]]))
+st.markdown("<br>", unsafe_allow_html=True)
 
-    run_btn = st.button("🔍 Run Scrub")
-    if run_btn:
-        if not active_signals:
-            st.warning("Select at least one signal type.")
-        else:
-            with st.spinner(f"Scanning {len(template['subreddits'])} subreddits..."):
-                try:
-                    st.session_state.results     = scrape_reddit(template["subreddits"], template, custom_brands, custom_services, active_signals, post_limit)
-                    st.session_state.ran         = True
-                    st.session_state.last_run    = datetime.now()
-                    st.session_state.handled     = set()
-                    st.session_state.industry_ran= industry
-                except Exception as e:
-                    st.error(f"Scrape error: {e}")
+# Step 2 â Signal types
+st.markdown('<div class="step-label">Step 2</div>', unsafe_allow_html=True)
+st.markdown('<div class="step-title">What signals do you want to capture?</div>', unsafe_allow_html=True)
 
-else:
-    ca, cb = st.columns([2,1])
-    with ca:
-        industry_preset = st.selectbox("Load subreddits from template", ["(none)"] + list(TEMPLATES.keys()))
-    with cb:
-        custom_subs_raw = st.text_input("Add custom subreddits", placeholder="agency,freelance")
-    preset_subs   = TEMPLATES[industry_preset]["subreddits"] if industry_preset != "(none)" else []
-    extra_subs    = [s.strip() for s in custom_subs_raw.split(",") if s.strip()]
-    selected_subs = list(dict.fromkeys(preset_subs + extra_subs))
-    if selected_subs:
-        st.caption("Scanning: " + "  ·  ".join([f"r/{s}" for s in selected_subs]))
-    st.markdown('<div class="section-hdr">Boolean Query</div>', unsafe_allow_html=True)
-    st.caption('Use AND, OR, NOT and quotes for exact phrases. Example: ("managed IT" OR "MSP") AND "switching" NOT "hiring"')
-    boolean_query = st.text_area("", height=90, placeholder='("managed IT" OR "MSP") AND ("frustrated" OR "switching") NOT "hiring"', label_visibility="collapsed")
-    with st.expander("📖 Boolean quick reference"):
-        st.markdown("| Operator | Example |\n|---|---|\n| `AND` | `\"MSP\" AND \"switching\"` |\n| `OR` | `\"MSP\" OR \"managed IT\"` |\n| `NOT` | `NOT \"hiring\"` |\n| `\"...\"` | `\"bad experience\"` |")
-    run_btn = st.button("🔍 Run Boolean Scrub")
-    if run_btn:
-        if not boolean_query.strip():
-            st.warning("Enter a Boolean query.")
-        elif not selected_subs:
-            st.warning("Select an industry or add custom subreddits.")
-        else:
-            with st.spinner(f"Boolean scan across {len(selected_subs)} subreddits..."):
-                try:
-                    st.session_state.results     = run_boolean_scrape(selected_subs, boolean_query, post_limit)
-                    st.session_state.ran         = True
-                    st.session_state.last_run    = datetime.now()
-                    st.session_state.handled     = set()
-                    st.session_state.industry_ran= industry_preset
-                except Exception as e:
-                    st.error(f"Scrape error: {e}")
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("""
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <span class="signal-icon">ð¯</span>
+            <span class="signal-name">Buying Intent</span>
+        </div>
+        <div class="signal-desc">People actively searching for a service, asking for recommendations, or ready to switch providers.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    sig_intent = st.checkbox("Include Buying Intent", value=True)
+
+    st.markdown("""
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <span class="signal-icon">ð¤</span>
+            <span class="signal-name">Pain & Frustration</span>
+        </div>
+        <div class="signal-desc">Complaints about current providers â unhappy customers who are likely to switch.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    sig_pain = st.checkbox("Include Pain & Frustration", value=True)
+
+with col2:
+    st.markdown("""
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <span class="signal-icon">ð¥</span>
+            <span class="signal-name">Competitor Mentions</span>
+        </div>
+        <div class="signal-desc">When specific brands or tools are called out â great for spotting unhappy competitor customers.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    sig_competitor = st.checkbox("Include Competitor Mentions", value=True)
+
+    st.markdown("""
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <span class="signal-icon">ð</span>
+            <span class="signal-name">Market Trends</span>
+        </div>
+        <div class="signal-desc">What the industry is actively talking about â useful for content, positioning, and staying ahead.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    sig_trend = st.checkbox("Include Market Trends", value=True)
+
+active_signals = []
+if sig_intent:     active_signals.append("Buying Intent")
+if sig_pain:       active_signals.append("Pain / Frustration")
+if sig_competitor: active_signals.append("Competitor Mentions")
+if sig_trend:      active_signals.append("Trend / Research")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Step 3 â Keywords
+st.markdown('<div class="step-label">Step 3 â Optional</div>', unsafe_allow_html=True)
+st.markdown('<div class="step-title">Any specific keywords to track?</div>', unsafe_allow_html=True)
+st.caption("Add brands, competitors, services, or products you want to monitor. Leave blank to use industry defaults only.")
+keyword_input = st.text_area("", height=80,
+    placeholder="e.g. Datto, SentinelOne, managed IT, endpoint security, your brand name...",
+    label_visibility="collapsed")
+custom_keywords = [k.strip() for k in re.split(r"[,\n]", keyword_input) if k.strip()]
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+with st.expander("ð See which subreddits will be scanned"):
+    st.markdown("  Â·  ".join([f"r/{s}" for s in template["subreddits"]]))
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+run_btn = st.button("ð  Run Scrub")
+if run_btn:
+    if not active_signals:
+        st.warning("Please select at least one signal type above.")
+    else:
+        with st.spinner(f"Scanning {len(template['subreddits'])} subreddits for {industry} signals..."):
+            try:
+                st.session_state.results     = scrape_reddit(template["subreddits"], template, custom_keywords, [], active_signals, post_limit)
+                st.session_state.ran         = True
+                st.session_state.last_run    = datetime.now()
+                st.session_state.handled     = set()
+                st.session_state.industry_ran= industry
+            except Exception as e:
+                st.error(f"Scrape error: {e}")
 
 
-# ─── Results Dashboard ────────────────────────────────────────────────────────
+# âââ Results Dashboard ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 if st.session_state.ran:
     results  = st.session_state.results
     handled  = st.session_state.handled
@@ -563,7 +646,7 @@ if st.session_state.ran:
     if not results:
         st.info("No matches found. Try adjusting signal types, adding more terms, or increasing posts per subreddit.")
     else:
-        # ── Stats row ──
+        # ââ Stats row ââ
         hot_count      = sum(1 for r in results if r["hot"])
         handled_count  = len(handled)
         new_count      = len(results)
@@ -572,26 +655,26 @@ if st.session_state.ran:
         <div class="stats-row">
             <div class="stat-box"><div class="stat-number">{new_count}</div><div class="stat-label">New This Run</div></div>
             <div class="stat-box"><div class="stat-number">{sum(1 for r in results if "Intent" in r["signal"])}</div><div class="stat-label">Buying Intent</div></div>
-            <div class="stat-box"><div class="stat-number">{hot_count} 🔥</div><div class="stat-label">Hot (&lt;3 h)</div></div>
+            <div class="stat-box"><div class="stat-number">{hot_count} ð¥</div><div class="stat-label">Hot (&lt;3 h)</div></div>
             <div class="stat-box"><div class="stat-number">{handled_count}</div><div class="stat-label">Handled</div></div>
         </div>
         """, unsafe_allow_html=True)
 
-        # ── Filters ──
+        # ââ Filters ââ
         fc1, fc2, fc3, fc4 = st.columns([2,2,2,2])
         with fc1:
             sig_options = list(set(r["signal"] for r in results))
             filter_sig  = st.multiselect("Signal", sig_options, default=sig_options, label_visibility="collapsed")
         with fc2:
-            show_hot     = st.checkbox("🔥 Hot only", value=False)
+            show_hot     = st.checkbox("ð¥ Hot only", value=False)
         with fc3:
             show_handled = st.checkbox("Show handled", value=False)
         with fc4:
-            sort_by = st.selectbox("Sort", ["Newest","Upvotes","Comments"], label_visibility="collapsed")
+            sort_by = st.selectbox("Sort","["Newest","Upvotes","Comments"], label_visibility="collapsed")
 
-        search = st.text_input("", placeholder="🔍  Search posts...", label_visibility="collapsed")
+        search = st.text_input("", placeholder="ð  Search posts...", label_visibility="collapsed")
 
-        # ── Apply filters ──
+        # ââ Apply filters ââ
         filtered = [r for r in results if r["signal"] in filter_sig]
         if show_hot:
             filtered = [r for r in filtered if r["hot"]]
@@ -607,28 +690,28 @@ if st.session_state.ran:
         else:
             filtered = sorted(filtered, key=lambda x: x["ts"], reverse=True)
 
-        # ── Download buttons ──
+        # ââ Download buttons ââ
         dl1, dl2, _ = st.columns([1,1,2])
         df  = pd.DataFrame([{k: v for k, v in r.items() if k != "ts"} for r in filtered])
         csv = df.to_csv(index=False).encode("utf-8")
         with dl1:
-            st.download_button("⬇️ Download CSV", data=csv,
+            st.download_button("â¬ï¸ Download CSV", data=csv,
                 file_name=f"reddit_scrub_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                 mime="text/csv")
         with dl2:
             pdf_buf = generate_pdf(filtered, industry)
-            st.download_button("⬇️ Download PDF", data=pdf_buf,
+            st.download_button("â¬ï¸ Download PDF", data=pdf_buf,
                 file_name=f"reddit_scrub_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
                 mime="application/pdf")
 
         st.markdown(f"**{len(filtered)} results**", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Result cards ──
+        # ââ Result cards ââ
         for r in filtered:
             badge_cls = SIGNAL_BADGE.get(r["signal"], "badge-boolean")
             tags_html = "".join([f'<span class="rcard-tag">{t}</span>' for t in r["matched"]])
-            hot_html  = '<span class="badge-hot">🔥 HOT</span>' if r["hot"] else ""
+            hot_html  = '<span class="badge-hot">ð¥ HOT</span>' if r["hot"] else ""
             is_done   = r["url"] in handled
 
             st.markdown(f"""
@@ -642,7 +725,7 @@ if st.session_state.ran:
                 {"<div class='rcard-snippet'>" + r['snippet'] + "...</div>" if r['snippet'] else ""}
                 <div class="rcard-tags">{tags_html}</div>
                 <div class="rcard-footer">
-                    <b>u/{r['author']}</b> · {time_ago(r['ts'])} · ▲ {r['upvotes']} · 💬 {r['comments']}
+                    <b>u/{r['author']}</b> Â· {time_ago(r['ts'])} Â· â² {r['upvotes']} Â· ð¬ {r['comments']}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -657,4 +740,4 @@ if st.session_state.ran:
                         st.session_state.handled.add(r["url"])
                     st.rerun()
             with jcol:
-                st.link_button("Jump In →", r["url"])
+                st.link_button("Jump In â", r["url"])
