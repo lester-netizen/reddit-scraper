@@ -357,45 +357,78 @@ def matches_signals(text, template, custom_brands, custom_services, active_signa
     if not triggered: return None, []
     return triggered[0][0], list({t[1] for t in triggered})
 
-HEADERS = {
+ANON_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/json",
     "Accept-Language": "en-US,en;q=0.9",
 }
+OAUTH_UA = "LeadPullsSocialListener/2.0 by leadpulls"
 
-def fetch_subreddit(sub, limit=100):
-    """Fetch posts from a subreddit using Reddit's public JSON API — no key needed.
+@st.cache_data(ttl=3000)
+def get_reddit_token():
+    """Obtain a Reddit OAuth token via client_credentials flow.
+    Reads REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET from Streamlit secrets.
+    Returns the token string, or None if credentials are missing/invalid."""
+    try:
+        cid = st.secrets.get("REDDIT_CLIENT_ID", "")
+        csec = st.secrets.get("REDDIT_CLIENT_SECRET", "")
+    except Exception:
+        return None
+    if not cid or not csec:
+        return None
+    try:
+        r = requests.post(
+            "https://www.reddit.com/api/v1/access_token",
+            auth=requests.auth.HTTPBasicAuth(cid, csec),
+            data={"grant_type": "client_credentials"},
+            headers={"User-Agent": OAUTH_UA},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return r.json().get("access_token")
+    except Exception:
+        pass
+    return None
+
+def fetch_subreddit(sub, limit=100, token=None):
+    """Fetch posts from Reddit. Uses OAuth endpoint when token is provided
+    (works from server IPs), otherwise falls back to public JSON API.
     Returns (posts_list, status_code_or_error_string)."""
     posts = []
-    url = f"https://www.reddit.com/r/{sub}/new.json?limit={min(limit,100)}"
+    if token:
+        base = f"https://oauth.reddit.com/r/{sub}/new?limit={min(limit,100)}"
+        hdrs = {"User-Agent": OAUTH_UA, "Authorization": f"bearer {token}"}
+    else:
+        base = f"https://www.reddit.com/r/{sub}/new.json?limit={min(limit,100)}"
+        hdrs = ANON_HEADERS
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
+        r = requests.get(base, headers=hdrs, timeout=15)
         if r.status_code != 200:
             return posts, r.status_code
         data = r.json()
         for child in data["data"]["children"]:
             posts.append(child["data"])
-        # If we need more than 100, paginate with 'after'
         if limit > 100:
             after = data["data"].get("after")
             if after:
-                url2 = f"https://www.reddit.com/r/{sub}/new.json?limit=100&after={after}"
-                r2 = requests.get(url2, headers=HEADERS, timeout=15)
+                url2 = base + f"&after={after}"
+                r2 = requests.get(url2, headers=hdrs, timeout=15)
                 if r2.status_code == 200:
                     for child in r2.json()["data"]["children"]:
                         posts.append(child["data"])
-        time.sleep(0.6)   # polite rate limiting
+        time.sleep(0.6)
     except Exception as exc:
         return posts, str(exc)
     return posts, 200
 
 def scrape_reddit(subreddits, template, custom_brands, custom_services, active_signals, limit=100):
-    """Returns (results, stats_dict) where stats_dict has total_posts, errors."""
+    """Returns (results, stats_dict) where stats_dict has total_posts, errors, oauth_active."""
+    token = get_reddit_token()
     results = []
     total_posts = 0
     errors = {}
     for sub in subreddits:
-        posts, status = fetch_subreddit(sub, limit)
+        posts, status = fetch_subreddit(sub, limit, token=token)
         if status != 200:
             errors[sub] = status
         total_posts += len(posts)
@@ -418,13 +451,14 @@ def scrape_reddit(subreddits, template, custom_brands, custom_services, active_s
                     "author":    d.get("author","[deleted]"),
                     "hot":       is_hot(ts),
                 })
-    return results, {"total_posts": total_posts, "errors": errors}
+    return results, {"total_posts": total_posts, "errors": errors, "oauth": token is not None}
 
 def run_boolean_scrape(subreddits, boolean_query, limit=100):
     matcher = parse_boolean(boolean_query)
+    token = get_reddit_token()
     results = []
     for sub in subreddits:
-        posts, _ = fetch_subreddit(sub, limit)
+        posts, _ = fetch_subreddit(sub, limit, token=token)
         for d in posts:
             combined = f"{d.get('title','')} {d.get('selftext','')}"
             if matcher(combined):
@@ -533,6 +567,36 @@ with st.sidebar:
     st.markdown("---")
     st.markdown('<div style="font-size:12px;color:#aec6d8;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Scan Depth</div>', unsafe_allow_html=True)
     post_limit = st.slider("Posts per subreddit", 25, 200, 100, 25)
+    st.markdown("---")
+
+    # ── Reddit API Status ──
+    _tok = get_reddit_token()
+    if _tok:
+        st.markdown('<div style="background:#1a3a1a;border:1px solid #2d6a2d;border-radius:8px;padding:10px 12px;font-size:11px;color:#6fcf6f;">✅ <b>Reddit OAuth active</b><br>Full API access — all subreddits will load.</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div style="background:#3a1a1a;border:1px solid #8b2020;border-radius:8px;padding:10px 12px;font-size:11px;color:#f08080;">⚠️ <b>Reddit API not configured</b><br>Cloud IPs are blocked by Reddit without credentials. Set up OAuth to unlock the tool.</div>', unsafe_allow_html=True)
+        with st.expander("🔧 How to fix (2 min setup)"):
+            st.markdown("""
+**Step 1:** Go to [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps)
+
+**Step 2:** Click **"create another app"**
+- Name: `LeadPulls Listener`
+- Type: **script**
+- Redirect URI: `http://localhost`
+- Click **Create app**
+
+**Step 3:** Copy the two values:
+- **Client ID** = the short code under the app name
+- **Client Secret** = the "secret" field
+
+**Step 4:** In Streamlit Cloud → your app → **Settings → Secrets**, add:
+```toml
+REDDIT_CLIENT_ID = "paste_id_here"
+REDDIT_CLIENT_SECRET = "paste_secret_here"
+```
+
+**Step 5:** Save → app reboots → done ✅
+            """)
     st.markdown("---")
     st.markdown('<div style="font-size:11px;color:#aec6d8;text-align:center;line-height:1.6;">Built by <b style="color:#FF5F00;">LeadPulls</b><br>leadpulls.com</div>', unsafe_allow_html=True)
 
@@ -667,8 +731,12 @@ if st.session_state.ran:
         _total = _stats.get("total_posts", 0)
         _errs  = _stats.get("errors", {})
         if _total == 0 and _errs:
-            err_list = ", ".join([f"r/{s} → HTTP {c}" for s, c in _errs.items()])
-            st.error(f"⚠️ Reddit blocked the request for all subreddits ({err_list}). This usually means Reddit is rate-limiting Streamlit Cloud. Wait 60 seconds and try again, or reduce the subreddit count.")
+            all_403 = all(c == 403 for c in _errs.values())
+            if all_403:
+                st.error("🚫 Reddit is blocking requests from this server (HTTP 403 on all subreddits). This is Reddit's standard block on cloud hosting IPs.\n\n**Fix:** Add your Reddit API credentials in the sidebar — it takes 2 minutes and unlocks the tool permanently.")
+            else:
+                err_list = ", ".join([f"r/{s} → HTTP {c}" for s, c in _errs.items()])
+                st.error(f"⚠️ Reddit returned errors for all subreddits ({err_list}). Try again in 30 seconds.")
         elif _total == 0:
             st.warning("⚠️ Fetched 0 posts — Reddit may be temporarily rate-limiting. Try again in 30 seconds.")
         else:
