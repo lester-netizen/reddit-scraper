@@ -183,12 +183,12 @@ st.markdown("""
 # ─── Industry Templates ───────────────────────────────────────────────────────
 TEMPLATES = {
     "MSPs / IT Firms": {
-        "subreddits": ["msp","sysadmin","ITCareerQuestions","smallbusiness","cybersecurity","techsupport","businessowners"],
-        "intent":     ["looking for managed IT","recommend an MSP","switching IT provider","need IT support","anyone use","who do you use for","evaluating MSPs","replacing our IT","best IT company"],
-        "pain":       ["IT keeps going down","sick of our IT","IT never responds","slow response time","got hacked","ransomware","MSP dropped the ball","IT support is useless","downtime costing us","IT tickets ignored"],
-        "competitors":["ConnectWise","Datto","SentinelOne","CrowdStrike","Kaseya","NinjaRMM","Huntress","Acronis","Webroot","Sophos"],
-        "trends":     ["cyber insurance","zero trust","cloud migration","Microsoft 365","SIEM for small business","SOC 2","HIPAA IT","backup strategy","EDR vs antivirus"],
-        "negatives":  ["hiring","job posting","internship","resume","salary","certification study","homework"],
+        "subreddits": ["msp","sysadmin","ITCareerQuestions","smallbusiness","cybersecurity","techsupport","businessowners","mspownersclub"],
+        "intent":     ["recommend an MSP","looking for MSP","need IT support","managed IT","new IT provider","IT company","switch IT","outsourced IT","co-managed IT","vCISO","who handles your IT","IT support company","looking for a managed","need a new IT","IT recommendations","best MSP","find an MSP","IT vendor","managed services","IT firm"],
+        "pain":       ["IT keeps going","sick of our IT","IT never responds","got hacked","ransomware","MSP dropped","IT support is","downtime","IT tickets","current IT is","IT guy quit","no IT","IT headache","cybersecurity incident","data breach","IT issues","IT problems","bad MSP","fired our MSP","IT disaster","slow IT","IT outage","phishing","service desk"],
+        "competitors":["ConnectWise","Datto","SentinelOne","CrowdStrike","Kaseya","NinjaRMM","Huntress","Acronis","Webroot","Sophos","Auvik","Pax8","Syncro","Atera","Halo PSA","BrightGauge","IT Glue","Veeam","Barracuda","Cisco Meraki"],
+        "trends":     ["cyber insurance","zero trust","cloud migration","Microsoft 365","M365","SIEM","SOC 2","HIPAA","backup strategy","EDR","endpoint detection","AI in IT","automation","patch management","dark web monitoring","MFA","multi-factor","MDR","XDR","CMMC","compliance"],
+        "negatives":  ["job posting","internship","certification study","homework","looking for work","job hunt","studying for"],
     },
     "Med Spas": {
         "subreddits": ["SkincareAddiction","PlasticSurgery","beauty","AskWomenOver30","AskWomen","30PlusSkinCare","weddingplanning"],
@@ -346,7 +346,10 @@ def matches_signals(text, template, custom_brands, custom_services, active_signa
     for sig_name, (key, label) in signal_map.items():
         if sig_name not in active_signals: continue
         for phrase in template.get(key, []):
-            if phrase.lower() in text_lower:
+            p = phrase.lower()
+            words = p.split()
+            # Exact substring match OR all individual words present (for multi-word phrases)
+            if p in text_lower or (len(words) > 1 and all(w in text_lower for w in words)):
                 triggered.append((label, phrase)); break
     for term in custom_brands + custom_services:
         if term.strip() and term.strip().lower() in text_lower:
