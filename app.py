@@ -357,37 +357,49 @@ def matches_signals(text, template, custom_brands, custom_services, active_signa
     if not triggered: return None, []
     return triggered[0][0], list({t[1] for t in triggered})
 
-HEADERS = {"User-Agent": "Mozilla/5.0 LeadPullsScrubber/1.0 (by LeadPulls)"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 def fetch_subreddit(sub, limit=100):
-    """Fetch posts from a subreddit using Reddit's public JSON API — no key needed."""
+    """Fetch posts from a subreddit using Reddit's public JSON API — no key needed.
+    Returns (posts_list, status_code_or_error_string)."""
     posts = []
     url = f"https://www.reddit.com/r/{sub}/new.json?limit={min(limit,100)}"
     try:
-        r = requests.get(url, headers=HEADERS, timeout=10)
+        r = requests.get(url, headers=HEADERS, timeout=15)
         if r.status_code != 200:
-            return posts
-        for child in r.json()["data"]["children"]:
-            d = child["data"]
-            posts.append(d)
+            return posts, r.status_code
+        data = r.json()
+        for child in data["data"]["children"]:
+            posts.append(child["data"])
         # If we need more than 100, paginate with 'after'
         if limit > 100:
-            after = r.json()["data"].get("after")
+            after = data["data"].get("after")
             if after:
                 url2 = f"https://www.reddit.com/r/{sub}/new.json?limit=100&after={after}"
-                r2 = requests.get(url2, headers=HEADERS, timeout=10)
+                r2 = requests.get(url2, headers=HEADERS, timeout=15)
                 if r2.status_code == 200:
                     for child in r2.json()["data"]["children"]:
                         posts.append(child["data"])
-        time.sleep(0.5)   # polite rate limiting
-    except Exception:
-        pass
-    return posts
+        time.sleep(0.6)   # polite rate limiting
+    except Exception as exc:
+        return posts, str(exc)
+    return posts, 200
 
 def scrape_reddit(subreddits, template, custom_brands, custom_services, active_signals, limit=100):
+    """Returns (results, stats_dict) where stats_dict has total_posts, errors."""
     results = []
+    total_posts = 0
+    errors = {}
     for sub in subreddits:
-        for d in fetch_subreddit(sub, limit):
+        posts, status = fetch_subreddit(sub, limit)
+        if status != 200:
+            errors[sub] = status
+        total_posts += len(posts)
+        for d in posts:
             combined = f"{d.get('title','')} {d.get('selftext','')}"
             signal, terms = matches_signals(combined, template, custom_brands, custom_services, active_signals)
             if signal:
@@ -406,13 +418,14 @@ def scrape_reddit(subreddits, template, custom_brands, custom_services, active_s
                     "author":    d.get("author","[deleted]"),
                     "hot":       is_hot(ts),
                 })
-    return results
+    return results, {"total_posts": total_posts, "errors": errors}
 
 def run_boolean_scrape(subreddits, boolean_query, limit=100):
     matcher = parse_boolean(boolean_query)
     results = []
     for sub in subreddits:
-        for d in fetch_subreddit(sub, limit):
+        posts, _ = fetch_subreddit(sub, limit)
+        for d in posts:
             combined = f"{d.get('title','')} {d.get('selftext','')}"
             if matcher(combined):
                 ts = d.get("created_utc", 0)
@@ -479,7 +492,8 @@ def generate_pdf(results, industry=""):
 
 # ─── Session State ─────────────────────────────────────────────────────────────
 for k, v in [("email_ok", False), ("results", []), ("ran", False),
-             ("handled", set()), ("last_run", None), ("industry_ran", "")]:
+             ("handled", set()), ("last_run", None), ("industry_ran", ""),
+             ("scan_stats", {})]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -629,7 +643,9 @@ if run_btn:
     else:
         with st.spinner(f"Scanning {len(template['subreddits'])} subreddits for {industry} signals..."):
             try:
-                st.session_state.results     = scrape_reddit(template["subreddits"], template, custom_keywords, [], active_signals, post_limit)
+                _results, _stats             = scrape_reddit(template["subreddits"], template, custom_keywords, [], active_signals, post_limit)
+                st.session_state.results     = _results
+                st.session_state.scan_stats  = _stats
                 st.session_state.ran         = True
                 st.session_state.last_run    = datetime.now()
                 st.session_state.handled     = set()
@@ -647,7 +663,17 @@ if st.session_state.ran:
     st.markdown("---")
 
     if not results:
-        st.info("No matches found. Try adjusting signal types, adding more terms, or increasing posts per subreddit.")
+        _stats = st.session_state.get("scan_stats", {})
+        _total = _stats.get("total_posts", 0)
+        _errs  = _stats.get("errors", {})
+        if _total == 0 and _errs:
+            err_list = ", ".join([f"r/{s} → HTTP {c}" for s, c in _errs.items()])
+            st.error(f"⚠️ Reddit blocked the request for all subreddits ({err_list}). This usually means Reddit is rate-limiting Streamlit Cloud. Wait 60 seconds and try again, or reduce the subreddit count.")
+        elif _total == 0:
+            st.warning("⚠️ Fetched 0 posts — Reddit may be temporarily rate-limiting. Try again in 30 seconds.")
+        else:
+            err_note = f"  ({len(_errs)} subreddit(s) failed to load)" if _errs else ""
+            st.info(f"✅ Scanned **{_total:,} posts** across {len(template['subreddits'])} subreddits{err_note} — no signal matches found.\n\n💡 Try: adding keywords in Step 3, selecting more signal types, or picking a broader industry template.")
     else:
         # ── Stats row ──
         hot_count      = sum(1 for r in results if r["hot"])
