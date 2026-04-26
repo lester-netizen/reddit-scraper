@@ -11,22 +11,22 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.units import inch
 
-# âââ Page Config âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Page Config ─────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Reddit Social Listener | LeadPulls",
-    page_icon="ð",
+    page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# âââ Brand Styles âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Brand Styles ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
     :root { --navy:#00233F; --orange:#FF5F00; }
     .stApp { background:#f0f2f5; }
     header[data-testid="stHeader"] { display:none; }
 
-    /* ââ Sidebar ââ */
+    /* ── Sidebar ── */
     section[data-testid="stSidebar"] {
         background:#00233F !important;
         border-right: 3px solid #FF5F00;
@@ -34,7 +34,7 @@ st.markdown("""
     section[data-testid="stSidebar"] * { color:#fff !important; }
     section[data-testid="stSidebar"] .stSlider label { color:#aec6d8 !important; font-size:12px; }
 
-    /* ââ Top bar ââ */
+    /* ── Top bar ── */
     .topbar {
         background: linear-gradient(135deg, #00233F 0%, #003a65 100%);
         padding:18px 28px; border-radius:12px; margin-bottom:20px;
@@ -52,7 +52,7 @@ st.markdown("""
     .topbar-meta { font-size:12px; color:#aec6d8; }
     .topbar-meta b { color:#fff; }
 
-    /* ââ Config card ââ */
+    /* ── Config card ── */
     .config-card {
         background:#fff; border-radius:14px; padding:28px 32px;
         box-shadow:0 2px 12px rgba(0,0,0,0.06); margin-bottom:20px;
@@ -66,7 +66,7 @@ st.markdown("""
         font-size:18px; font-weight:800; color:#00233F; margin-bottom:16px;
     }
 
-    /* ââ Industry selector ââ */
+    /* ── Industry selector ── */
     .stSelectbox > div > div {
         border: 2px solid #e0e0e0 !important;
         border-radius: 10px !important;
@@ -77,7 +77,7 @@ st.markdown("""
         border-color: #FF5F00 !important;
     }
 
-    /* ââ Signal cards ââ */
+    /* ── Signal cards ── */
     .signal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:4px 0 20px; }
     .signal-card {
         background:#f8f9fa; border:2px solid #e8e8e8;
@@ -90,7 +90,7 @@ st.markdown("""
     .signal-name { font-size:14px; font-weight:700; color:#00233F; }
     .signal-desc { font-size:12px; color:#777; line-height:1.4; padding-left:30px; }
 
-    /* ââ Keyword input ââ */
+    /* ── Keyword input ── */
     .stTextArea textarea {
         border: 2px solid #e0e0e0 !important;
         border-radius: 10px !important;
@@ -101,7 +101,7 @@ st.markdown("""
         box-shadow: 0 0 0 3px rgba(255,95,0,0.1) !important;
     }
 
-    /* ââ Run button ââ */
+    /* ── Run button ── */
     .stButton > button {
         background: linear-gradient(135deg, #FF5F00, #e05400) !important;
         color: #fff !important; border: none !important;
@@ -116,14 +116,14 @@ st.markdown("""
         box-shadow: 0 6px 18px rgba(255,95,0,0.45) !important;
     }
 
-    /* ââ Download buttons ââ */
+    /* ── Download buttons ── */
     .stDownloadButton > button {
         background:#00233F !important; color:#fff !important;
         border:none !important; border-radius:8px !important;
         font-weight:600 !important; font-size:13px !important;
     }
 
-    /* ââ Email gate ââ */
+    /* ── Email gate ── */
     .email-gate {
         background: linear-gradient(135deg, #00233F, #003a65);
         border-radius:16px; padding:52px 40px; text-align:center;
@@ -137,7 +137,7 @@ st.markdown("""
     .gate-perk  { color:#fff; font-size:13px; margin-bottom:8px; }
     .gate-perk span { color:#FF5F00; font-weight:700; margin-right:8px; }
 
-    /* ââ Stat boxes ââ */
+    /* ── Stat boxes ── */
     .stats-row { display:flex; gap:12px; margin-bottom:20px; }
     .stat-box {
         background:#fff; border-radius:12px; padding:16px 20px;
@@ -148,7 +148,7 @@ st.markdown("""
     .stat-number { font-size:30px; font-weight:900; color:#00233F; line-height:1; }
     .stat-label  { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; }
 
-    /* ââ Result cards ââ */
+    /* ── Result cards ── */
     .rcard {
         background:#fff; border-radius:12px;
         border:1px solid #eee; border-left: 4px solid #FF5F00;
@@ -179,8 +179,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# âââ Industry Templates âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# âââ Industry Templates âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Industry Templates ───────────────────────────────────────────────────────
+# ─── Industry Templates ───────────────────────────────────────────────────────
 TEMPLATES = {
     "MSPs / IT Firms": {
         "subreddits": ["msp","sysadmin","ITCareerQuestions","smallbusiness","cybersecurity","techsupport","businessowners"],
@@ -297,15 +297,15 @@ TEMPLATES = {
 }
 
 SIGNAL_BADGE = {
-    "ð¢ Buying Intent":      "badge-intent",
-    "ð´ Pain / Frustration": "badge-pain",
-    "ð  Competitor Mention": "badge-competitor",
-    "ðµ Trend / Research":   "badge-trend",
-    "ð Boolean Match":      "badge-boolean",
+    "🟢 Buying Intent":      "badge-intent",
+    "🔴 Pain / Frustration": "badge-pain",
+    "🟠 Competitor Mention": "badge-competitor",
+    "🔵 Trend / Research":   "badge-trend",
+    "🔍 Boolean Match":      "badge-boolean",
 }
 
 
-# âââ Helpers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Helpers ─────────────────────────────────────────────────────────────────
 def time_ago(ts):
     diff = time.time() - ts
     if diff < 3600:   return f"{int(diff/60)}m ago"
@@ -338,10 +338,10 @@ def matches_signals(text, template, custom_brands, custom_services, active_signa
         return None, []
     triggered = []
     signal_map = {
-        "Buying Intent":       ("intent",      "ð¢ Buying Intent"),
-        "Pain / Frustration":  ("pain",        "ð´ Pain / Frustration"),
-        "Competitor Mentions": ("competitors", "ð  Competitor Mention"),
-        "Trend / Research":    ("trends",      "ðµ Trend / Research"),
+        "Buying Intent":       ("intent",      "🟢 Buying Intent"),
+        "Pain / Frustration":  ("pain",        "🔴 Pain / Frustration"),
+        "Competitor Mentions": ("competitors", "🟠 Competitor Mention"),
+        "Trend / Research":    ("trends",      "🔵 Trend / Research"),
     }
     for sig_name, (key, label) in signal_map.items():
         if sig_name not in active_signals: continue
@@ -350,14 +350,14 @@ def matches_signals(text, template, custom_brands, custom_services, active_signa
                 triggered.append((label, phrase)); break
     for term in custom_brands + custom_services:
         if term.strip() and term.strip().lower() in text_lower:
-            triggered.append(("ð  Competitor Mention", term.strip()))
+            triggered.append(("🟠 Competitor Mention", term.strip()))
     if not triggered: return None, []
     return triggered[0][0], list({t[1] for t in triggered})
 
 HEADERS = {"User-Agent": "Mozilla/5.0 LeadPullsScrubber/1.0 (by LeadPulls)"}
 
 def fetch_subreddit(sub, limit=100):
-    """Fetch posts from a subreddit using Reddit's public JSON API â no key needed."""
+    """Fetch posts from a subreddit using Reddit's public JSON API — no key needed."""
     posts = []
     url = f"https://www.reddit.com/r/{sub}/new.json?limit={min(limit,100)}"
     try:
@@ -414,7 +414,7 @@ def run_boolean_scrape(subreddits, boolean_query, limit=100):
             if matcher(combined):
                 ts = d.get("created_utc", 0)
                 results.append({
-                    "signal":    "ð Boolean Match",
+                    "signal":    "🔍 Boolean Match",
                     "subreddit": f"r/{sub}",
                     "title":     d.get("title",""),
                     "snippet":   d.get("selftext","")[:220].replace("\n"," "),
@@ -430,7 +430,7 @@ def run_boolean_scrape(subreddits, boolean_query, limit=100):
     return results
 
 
-# âââ PDF Generator ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── PDF Generator ────────────────────────────────────────────────────────────
 def generate_pdf(results, industry=""):
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter,
@@ -445,8 +445,8 @@ def generate_pdf(results, industry=""):
     title_style = ParagraphStyle("title", fontSize=18, fontName="Helvetica-Bold",
                                  textColor=navy, spaceAfter=4)
     sub_style   = ParagraphStyle("sub",   fontSize=10, textColor=colors.HexColor("#888888"), spaceAfter=16)
-    story.append(Paragraph("LeadPulls Â· Reddit Social Listener", title_style))
-    story.append(Paragraph(f"{industry}  Â·  {len(results)} results  Â·  Run {datetime.now().strftime('%b %d, %Y %I:%M %p')}", sub_style))
+    story.append(Paragraph("LeadPulls · Reddit Social Listener", title_style))
+    story.append(Paragraph(f"{industry}  ·  {len(results)} results  ·  Run {datetime.now().strftime('%b %d, %Y %I:%M %p')}", sub_style))
     story.append(HRFlowable(width="100%", thickness=2, color=orange, spaceAfter=14))
 
     card_title  = ParagraphStyle("ct", fontSize=12, fontName="Helvetica-Bold", textColor=navy, spaceAfter=3)
@@ -458,11 +458,11 @@ def generate_pdf(results, industry=""):
     for i, r in enumerate(results):
         story.append(Paragraph(r["title"], card_title))
         story.append(Paragraph(
-            f"{r['signal']}  Â·  {r['subreddit']}  Â·  u/{r['author']}  Â·  {r['posted']}  Â·  â²{r['upvotes']}  Â·  ð¬{r['comments']}{'  ð¥ HOT' if r.get('hot') else ''}",
+            f"{r['signal']}  ·  {r['subreddit']}  ·  u/{r['author']}  ·  {r['posted']}  ·  ▲{r['upvotes']}  ·  💬{r['comments']}{'  🔥 HOT' if r.get('hot') else ''}",
             card_meta
         ))
         if r["snippet"]:
-            story.append(Paragraph(r["snippet"] + "â¦", card_snip))
+            story.append(Paragraph(r["snippet"] + "…", card_snip))
         story.append(Paragraph("Matched: " + ", ".join(r["matched"]), card_match))
         story.append(Paragraph(r["url"], card_url))
         story.append(Spacer(1, 8))
@@ -474,27 +474,27 @@ def generate_pdf(results, industry=""):
     return buf
 
 
-# âââ Session State âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Session State ─────────────────────────────────────────────────────────────
 for k, v in [("email_ok", False), ("results", []), ("ran", False),
              ("handled", set()), ("last_run", None), ("industry_ran", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
 
-# âââ Email Gate ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Email Gate ────────────────────────────────────────────────────────────────
 if not st.session_state.email_ok:
     st.markdown("""
     <div class="email-gate">
-        <div style="font-size:40px;margin-bottom:12px;">ð</div>
+        <div style="font-size:40px;margin-bottom:12px;">🔍</div>
         <h2>Reddit Social Listener</h2>
-        <p>Free access â enter your details below and start listening to your market in minutes.</p>
+        <p>Free access — enter your details below and start listening to your market in minutes.</p>
     </div>
     """, unsafe_allow_html=True)
     ca, cb, cc = st.columns([1,2,1])
     with cb:
         name  = st.text_input("", placeholder="Your first name",    label_visibility="collapsed")
         email = st.text_input("", placeholder="you@company.com",    label_visibility="collapsed")
-        if st.button("Get Free Access â"):
+        if st.button("Get Free Access →"):
             if "@" in email and len(name.strip()) > 0:
                 st.session_state.email_ok    = True
                 st.session_state.user_email  = email
@@ -505,7 +505,7 @@ if not st.session_state.email_ok:
     st.stop()
 
 
-# âââ Sidebar ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div style="text-align:center;padding:20px 0 10px;">
@@ -520,7 +520,7 @@ with st.sidebar:
     st.markdown('<div style="font-size:11px;color:#aec6d8;text-align:center;line-height:1.6;">Built by <b style="color:#FF5F00;">LeadPulls</b><br>leadpulls.com</div>', unsafe_allow_html=True)
 
 
-# âââ Top Bar ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Top Bar ──────────────────────────────────────────────────────────────────
 last_run_str = st.session_state.last_run.strftime("%A, %b %d at %I:%M %p") if st.session_state.last_run else "Not run yet"
 st.markdown(f"""
 <div class="topbar">
@@ -533,10 +533,10 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# âââ Config Panel âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Config Panel ─────────────────────────────────────────────────────────────
 st.markdown('<div class="config-card">', unsafe_allow_html=True)
 
-# Step 1 â Industry
+# Step 1 — Industry
 st.markdown('<div class="step-label">Step 1</div>', unsafe_allow_html=True)
 st.markdown('<div class="step-title">What industry are you listening to?</div>', unsafe_allow_html=True)
 industry = st.selectbox("", list(TEMPLATES.keys()), label_visibility="collapsed")
@@ -544,7 +544,7 @@ template = TEMPLATES[industry]
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Step 2 â Signal types
+# Step 2 — Signal types
 st.markdown('<div class="step-label">Step 2</div>', unsafe_allow_html=True)
 st.markdown('<div class="step-title">What signals do you want to capture?</div>', unsafe_allow_html=True)
 
@@ -553,7 +553,7 @@ with col1:
     st.markdown("""
     <div class="signal-card">
         <div class="signal-card-header">
-            <span class="signal-icon">ð¯</span>
+            <span class="signal-icon">🎯</span>
             <span class="signal-name">Buying Intent</span>
         </div>
         <div class="signal-desc">People actively searching for a service, asking for recommendations, or ready to switch providers.</div>
@@ -564,10 +564,10 @@ with col1:
     st.markdown("""
     <div class="signal-card">
         <div class="signal-card-header">
-            <span class="signal-icon">ð¤</span>
+            <span class="signal-icon">😤</span>
             <span class="signal-name">Pain & Frustration</span>
         </div>
-        <div class="signal-desc">Complaints about current providers â unhappy customers who are likely to switch.</div>
+        <div class="signal-desc">Complaints about current providers — unhappy customers who are likely to switch.</div>
     </div>
     """, unsafe_allow_html=True)
     sig_pain = st.checkbox("Include Pain & Frustration", value=True)
@@ -576,10 +576,10 @@ with col2:
     st.markdown("""
     <div class="signal-card">
         <div class="signal-card-header">
-            <span class="signal-icon">ð¥</span>
+            <span class="signal-icon">🥊</span>
             <span class="signal-name">Competitor Mentions</span>
         </div>
-        <div class="signal-desc">When specific brands or tools are called out â great for spotting unhappy competitor customers.</div>
+        <div class="signal-desc">When specific brands or tools are called out — great for spotting unhappy competitor customers.</div>
     </div>
     """, unsafe_allow_html=True)
     sig_competitor = st.checkbox("Include Competitor Mentions", value=True)
@@ -587,10 +587,10 @@ with col2:
     st.markdown("""
     <div class="signal-card">
         <div class="signal-card-header">
-            <span class="signal-icon">ð</span>
+            <span class="signal-icon">📈</span>
             <span class="signal-name">Market Trends</span>
         </div>
-        <div class="signal-desc">What the industry is actively talking about â useful for content, positioning, and staying ahead.</div>
+        <div class="signal-desc">What the industry is actively talking about — useful for content, positioning, and staying ahead.</div>
     </div>
     """, unsafe_allow_html=True)
     sig_trend = st.checkbox("Include Market Trends", value=True)
@@ -603,8 +603,8 @@ if sig_trend:      active_signals.append("Trend / Research")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Step 3 â Keywords
-st.markdown('<div class="step-label">Step 3 â Optional</div>', unsafe_allow_html=True)
+# Step 3 — Keywords
+st.markdown('<div class="step-label">Step 3 — Optional</div>', unsafe_allow_html=True)
 st.markdown('<div class="step-title">Any specific keywords to track?</div>', unsafe_allow_html=True)
 st.caption("Add brands, competitors, services, or products you want to monitor. Leave blank to use industry defaults only.")
 keyword_input = st.text_area("", height=80,
@@ -614,12 +614,12 @@ custom_keywords = [k.strip() for k in re.split(r"[,\n]", keyword_input) if k.str
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-with st.expander("ð See which subreddits will be scanned"):
-    st.markdown("  Â·  ".join([f"r/{s}" for s in template["subreddits"]]))
+with st.expander("📋 See which subreddits will be scanned"):
+    st.markdown("  ·  ".join([f"r/{s}" for s in template["subreddits"]]))
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-run_btn = st.button("ð  Run Scrub")
+run_btn = st.button("🔍  Run Scrub")
 if run_btn:
     if not active_signals:
         st.warning("Please select at least one signal type above.")
@@ -635,7 +635,7 @@ if run_btn:
                 st.error(f"Scrape error: {e}")
 
 
-# âââ Results Dashboard ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Results Dashboard ────────────────────────────────────────────────────────
 if st.session_state.ran:
     results  = st.session_state.results
     handled  = st.session_state.handled
@@ -646,7 +646,7 @@ if st.session_state.ran:
     if not results:
         st.info("No matches found. Try adjusting signal types, adding more terms, or increasing posts per subreddit.")
     else:
-        # ââ Stats row ââ
+        # ── Stats row ──
         hot_count      = sum(1 for r in results if r["hot"])
         handled_count  = len(handled)
         new_count      = len(results)
@@ -655,26 +655,26 @@ if st.session_state.ran:
         <div class="stats-row">
             <div class="stat-box"><div class="stat-number">{new_count}</div><div class="stat-label">New This Run</div></div>
             <div class="stat-box"><div class="stat-number">{sum(1 for r in results if "Intent" in r["signal"])}</div><div class="stat-label">Buying Intent</div></div>
-            <div class="stat-box"><div class="stat-number">{hot_count} ð¥</div><div class="stat-label">Hot (&lt;3 h)</div></div>
+            <div class="stat-box"><div class="stat-number">{hot_count} 🔥</div><div class="stat-label">Hot (&lt;3 h)</div></div>
             <div class="stat-box"><div class="stat-number">{handled_count}</div><div class="stat-label">Handled</div></div>
         </div>
         """, unsafe_allow_html=True)
 
-        # ââ Filters ââ
+        # ── Filters ──
         fc1, fc2, fc3, fc4 = st.columns([2,2,2,2])
         with fc1:
             sig_options = list(set(r["signal"] for r in results))
             filter_sig  = st.multiselect("Signal", sig_options, default=sig_options, label_visibility="collapsed")
         with fc2:
-            show_hot     = st.checkbox("ð¥ Hot only", value=False)
+            show_hot     = st.checkbox("🔥 Hot only", value=False)
         with fc3:
             show_handled = st.checkbox("Show handled", value=False)
         with fc4:
-            sort_by = st.selectbox("Sort","["Newest","Upvotes","Comments"], label_visibility="collapsed")
+            sort_by = st.selectbox("Sort", ["Newest","Upvotes","Comments"], label_visibility="collapsed")
 
-        search = st.text_input("", placeholder="ð  Search posts...", label_visibility="collapsed")
+        search = st.text_input("", placeholder="🔍  Search posts...", label_visibility="collapsed")
 
-        # ââ Apply filters ââ
+        # ── Apply filters ──
         filtered = [r for r in results if r["signal"] in filter_sig]
         if show_hot:
             filtered = [r for r in filtered if r["hot"]]
@@ -690,28 +690,28 @@ if st.session_state.ran:
         else:
             filtered = sorted(filtered, key=lambda x: x["ts"], reverse=True)
 
-        # ââ Download buttons ââ
+        # ── Download buttons ──
         dl1, dl2, _ = st.columns([1,1,2])
         df  = pd.DataFrame([{k: v for k, v in r.items() if k != "ts"} for r in filtered])
         csv = df.to_csv(index=False).encode("utf-8")
         with dl1:
-            st.download_button("â¬ï¸ Download CSV", data=csv,
+            st.download_button("⬇️ Download CSV", data=csv,
                 file_name=f"reddit_scrub_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                 mime="text/csv")
         with dl2:
             pdf_buf = generate_pdf(filtered, industry)
-            st.download_button("â¬ï¸ Download PDF", data=pdf_buf,
+            st.download_button("⬇️ Download PDF", data=pdf_buf,
                 file_name=f"reddit_scrub_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
                 mime="application/pdf")
 
         st.markdown(f"**{len(filtered)} results**", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ââ Result cards ââ
+        # ── Result cards ──
         for r in filtered:
             badge_cls = SIGNAL_BADGE.get(r["signal"], "badge-boolean")
             tags_html = "".join([f'<span class="rcard-tag">{t}</span>' for t in r["matched"]])
-            hot_html  = '<span class="badge-hot">ð¥ HOT</span>' if r["hot"] else ""
+            hot_html  = '<span class="badge-hot">🔥 HOT</span>' if r["hot"] else ""
             is_done   = r["url"] in handled
 
             st.markdown(f"""
@@ -725,7 +725,7 @@ if st.session_state.ran:
                 {"<div class='rcard-snippet'>" + r['snippet'] + "...</div>" if r['snippet'] else ""}
                 <div class="rcard-tags">{tags_html}</div>
                 <div class="rcard-footer">
-                    <b>u/{r['author']}</b> Â· {time_ago(r['ts'])} Â· â² {r['upvotes']} Â· ð¬ {r['comments']}
+                    <b>u/{r['author']}</b> · {time_ago(r['ts'])} · ▲ {r['upvotes']} · 💬 {r['comments']}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -740,4 +740,4 @@ if st.session_state.ran:
                         st.session_state.handled.add(r["url"])
                     st.rerun()
             with jcol:
-                st.link_button("Jump In â", r["url"])
+                st.link_button("Jump In →", r["url"])
